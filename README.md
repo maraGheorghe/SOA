@@ -25,7 +25,7 @@ The backend consists of six microservices, each having a different role:
 The load balancer routes requests between authservice, dogs-api, and adopters-api. The adopters-api communicates with adoption-confirmation-service through a Kafka queue, and the adoption-confirmation-service communicates with email-service through a RabbitMQ queue.
 
 ## An overview of the app services in the backend can be seen in the diagram below:
-<img src="diagram.png" width="200">
+<img src="diagram.png" width="400">
 
 The frontend is a separate microservice that exposes pages for:
 - Login
@@ -34,7 +34,7 @@ The frontend is a separate microservice that exposes pages for:
 
 The application uses Docker for creating the images and deploying the containers.
 
-<img src="c4.png" width="200">
+<img src="c4.png" width="400">
 
 In order to start the application, you have to run the followinf command in the backend folder.
 ```bash
