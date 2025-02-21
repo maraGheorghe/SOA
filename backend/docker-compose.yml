@@ -1,0 +1,115 @@
+services:
+  auth-api: # authentication service
+    container_name: auth-api
+    build:
+      dockerfile: authservice/Dockerfile
+      context: .
+    restart: always
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_KEY=${JWT_KEY}
+
+  nginx: # load balancer using nginx
+    container_name: nginx
+    build:
+      dockerfile: Dockerfile
+      context: nginx
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - auth-api
+      - dogs-api
+      - adopters-api
+
+  database: # MongoDB for everything
+    container_name: database
+    image: mongo:7.0
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=admin
+      - MONGO_INITDB_DATABASE=database
+
+  dogs-api:
+    container_name: dogs-api
+    build:
+      dockerfile: dogs-service/Dockerfile
+      context: .
+    restart: always
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+
+  adopters-api:
+    container_name: adopters-api
+    build:
+      dockerfile: adopters-service/Dockerfile
+      context: .
+    restart: always
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - RABBITMQ_CONNECT=${RABBITMQ_CONNECT}
+    depends_on:
+      - kafka
+      - rabbitmq
+
+  adoption-confirmation-service:  # Consumă Kafka și trimite confirmarea adopției prin RabbitMQ
+    container_name: adoption-confirmation-service
+    build:
+      dockerfile: adoption-confirmation-service/Dockerfile
+      context: .
+    restart: always
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - KAFKA_BROKER=kafka:9092
+      - RABBITMQ_CONNECT=${RABBITMQ_CONNECT}
+    depends_on:
+      - kafka
+      - rabbitmq
+
+  zookeeper:
+    container_name: zookeeper
+    image: confluentinc/cp-zookeeper
+    restart: always
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+
+  kafka:
+    container_name: kafka
+    image: confluentinc/cp-kafka
+    restart: always
+    depends_on:
+      - zookeeper
+    ports:
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  rabbitmq:
+    image: rabbitmq:management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"    # RabbitMQ messaging port
+      - "15672:15672"  # RabbitMQ management UI port
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  frontend:
+    container_name: frontend-service
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+
+volumes:
+  rabbitmq_data:

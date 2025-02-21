@@ -1,0 +1,54 @@
+server {
+    listen 80;
+
+    # Global CORS handling
+    add_header 'Access-Control-Allow-Origin' '*';
+    add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS';
+    add_header 'Access-Control-Allow-Headers' 'Origin, Content-Type, Accept, Authorization';
+    add_header 'Access-Control-Max-Age' 3600;
+
+    # Handle OPTIONS requests for CORS pre-flight (global)
+    if ($request_method = 'OPTIONS') {
+        return 204;
+    }
+
+    # Authentication route
+    location /auth {
+        proxy_pass http://auth-api/auth;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    # Dogs list route
+    location /dogs {
+        proxy_pass http://dogs-api/dogs;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    # Dog details route
+    location /dogs/:dogId {
+        proxy_pass http://dogs-api/dogs/:dogId;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    # Adoption request route
+    location /adopt {
+        proxy_pass http://adopters-api/adopt;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    # Default route for frontend
+    location / {
+        proxy_pass http://frontend-service;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
